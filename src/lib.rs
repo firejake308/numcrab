@@ -79,6 +79,14 @@ impl fmt::Display for Dtype {
     }
 }
 
+fn fast_convert_4(arr: &[u8]) -> [u8; 4] {
+    [arr[0], arr[1], arr[2], arr[3]]
+}
+
+fn fast_convert_8(arr: &[u8]) -> [u8; 8] {
+    [arr[0], arr[1], arr[2], arr[3], arr[4], arr[5], arr[6], arr[7]]
+}
+
 const MAX_DIM: i32 = 32;
 #[wasm_bindgen]
 pub struct NdArray {
@@ -136,6 +144,27 @@ impl NdArray {
         res.push_str("]");
         res
     }
+
+    pub fn sum(&self) -> f64 {
+        let mut res = 0f64;
+
+        match self.dtype {
+            Dtype {kind: 'i', alignment: _, item_size: 4} => {
+                for i in (0..self.data.len()).step_by(4) {
+                    res += &i32::from_le_bytes(fast_convert_4(&self.data[i..i + 4])).into()
+                }
+            }
+            Dtype {kind: 'f', alignment: _, item_size: 8} => {
+                for i in (0..self.data.len()).step_by(8) {
+                    res += &f64::from_le_bytes(fast_convert_8(&self.data[i..i + 8]))
+                }
+            }
+            _ => panic!("Not implemented yet")
+        }
+        
+        res
+    }
+
 }
 
 #[wasm_bindgen]
